@@ -1,0 +1,51 @@
+name: Django CI
+
+on:
+  push:
+    branches:
+      - main  # Triggers the action when there is a push to the main branch
+  pull_request:
+    branches:
+      - main  # Triggers the action when there is a pull request to the main branch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # Running on Ubuntu environment
+
+    services:
+      db:
+        image: postgres:latest  # Using the latest PostgreSQL Docker image
+        env:
+          POSTGRES_USER: user  # Database user
+          POSTGRES_PASSWORD: password  # Database password
+          POSTGRES_DB: test_db  # Database name
+        options: >-
+          --health-cmd pg_isready  # Health check command for PostgreSQL
+          --health-interval 10s  # Check every 10 seconds
+          --health-timeout 5s  # Wait 5 seconds for the health check to pass
+          --health-retries 5  # Retry 5 times before failing
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3  # Pulls the latest code from your GitHub repository
+
+      - name: Set up Python
+        uses: actions/setup-python@v4  # Sets up Python 3.11 environment
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv  # Creates a virtual environment
+          source venv/bin/activate  # Activates the virtual environment
+          pip install -r requirements.txt  # Installs all required dependencies
+
+      - name: Run linting
+        run: |
+          flake8 .  # Runs flake8 for Python code style checks
+          black --check .  # Runs black to ensure code is formatted properly
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate  # Activates the virtual environment again
+          python manage.py test  # Runs Django's built-in test suite
